@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Runtime Routing Ops</title>
+  <style>
+    body { font-family: sans-serif; margin: 24px; }
+    .row { margin-bottom: 12px; }
+    label { display: inline-block; width: 160px; }
+    input, select { width: 320px; padding: 6px; }
+    button { padding: 8px 16px; }
+    pre { background: #f5f5f5; padding: 12px; }
+  </style>
+</head>
+<body>
+  <h2>运营配置：模型与调度</h2>
+
+  <div class="row"><label>Agent ID</label><input id="agentId" value="1" /></div>
+  <div class="row"><label>Operator ID</label><input id="operatorId" value="ops_1" /></div>
+  <div class="row"><label>Provider</label>
+    <select id="provider"><option value="anthropic">anthropic</option><option value="openai">openai</option></select>
+  </div>
+  <div class="row"><label>Model</label><input id="model" value="claude-sonnet-4-6" /></div>
+  <div class="row"><label>API Key</label><input id="apiKey" type="password" value="" /></div>
+  <div class="row"><label>Base URL</label><input id="baseUrl" value="" /></div>
+  <div class="row"><label>Fallback Model</label><input id="fallbackModel" value="" /></div>
+  <div class="row"><label>Dispatch Mode</label>
+    <select id="dispatchMode"><option value="HYBRID">HYBRID</option><option value="AUTO">AUTO</option><option value="MANUAL">MANUAL</option></select>
+  </div>
+  <div class="row"><label>Manual Skill</label><input id="manualSkill" value="default" /></div>
+  <div class="row"><label>Temperature</label><input id="temperature" value="0.2" /></div>
+  <div class="row"><label>Max Tokens</label><input id="maxTokens" value="2048" /></div>
+
+  <div class="row">
+    <button onclick="loadConfig()">加载配置</button>
+    <button onclick="saveConfig()">保存配置</button>
+  </div>
+
+  <h3>结果</h3>
+  <pre id="output"></pre>
+
+  <script>
+    const out = document.getElementById('output');
+    const id = () => document.getElementById('agentId').value;
+
+    async function loadConfig() {
+      const res = await fetch(`/api/admin/runtime/agents/${id()}/routing`);
+      const data = await res.json();
+      document.getElementById('provider').value = data.provider;
+      document.getElementById('model').value = data.model;
+      document.getElementById('apiKey').value = '';
+      document.getElementById('baseUrl').value = data.baseUrl || '';
+      document.getElementById('fallbackModel').value = data.fallbackModel;
+      document.getElementById('dispatchMode').value = data.dispatchMode;
+      document.getElementById('manualSkill').value = data.manualSkill;
+      document.getElementById('temperature').value = data.temperature;
+      document.getElementById('maxTokens').value = data.maxTokens;
+      out.textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function saveConfig() {
+      const payload = {
+        operatorId: document.getElementById('operatorId').value,
+        provider: document.getElementById('provider').value,
+        model: document.getElementById('model').value,
+        apiKey: document.getElementById('apiKey').value,
+        baseUrl: document.getElementById('baseUrl').value,
+        fallbackModel: document.getElementById('fallbackModel').value,
+        dispatchMode: document.getElementById('dispatchMode').value,
+        manualSkill: document.getElementById('manualSkill').value,
+        temperature: Number(document.getElementById('temperature').value),
+        maxTokens: Number(document.getElementById('maxTokens').value)
+      };
+      const res = await fetch(`/api/admin/runtime/agents/${id()}/routing`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      out.textContent = JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>

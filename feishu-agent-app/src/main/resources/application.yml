@@ -1,0 +1,47 @@
+feishu:
+  verification-token: ""
+  rate-limit:
+    per-user-per-minute: 0
+    backend: redis
+  event-dedup:
+    backend: jdbc
+  session:
+    redis:
+      enabled: true
+      url: "redis://localhost:6379"
+      key-prefix: "feishu:session:"
+      ttl-seconds: 86400
+  runtime:
+    routing:
+      backend: jdbc
+    max-retries: 0
+    model:
+      streaming:
+        enabled: true
+    signing-secret: ""
+    signature-max-skew-seconds: 300
+    skill-repo:
+      dir: ""
+      refresh-interval-ms: 5000
+    workspace-dir: ".agentscope/feishu-runtime"
+    sandbox:
+      enabled: true
+      backend: local
+      docker-image: ""
+  websocket:
+    enabled: true
+    url: ""
+    app-id: ""
+    app-secret: ""
+    reconnect-seconds: 5
+  auth:
+    app-base-url: "http://localhost:8080"
+    token-backend: ""
+spring:
+  datasource:
+    url: "jdbc:postgresql://localhost:5432/feishu_agent"
+    username: "postgres"
+    password: "postgres"
+  data:
+    redis:
+      url: "redis://localhost:6379"

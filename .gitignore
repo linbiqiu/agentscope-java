@@ -80,8 +80,9 @@ logs/
 # boba-tea-shop: generated static assets served by the supervisor-agent
 **/boba-tea-shop/supervisor-agent/**/static/
 
-##agentscope
-.agentscope/
+## deployment env secrets
+feishu-agent-app/deploy/prod/.env.prod
+feishu-agent-app/deploy/test/.env.test
 
 ## harness db
 **/*.db

@@ -1,0 +1,77 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: feishu-postgres-test
+    environment:
+      POSTGRES_DB: feishu_agent
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d feishu_agent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7
+    container_name: feishu-redis-test
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  feishu-agent-app:
+    image: ${FEISHU_AGENT_APP_IMAGE}
+    container_name: feishu-agent-app-test
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/feishu_agent
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_URL: redis://redis:6379
+
+      FEISHU_RATE_LIMIT_BACKEND: redis
+      FEISHU_EVENT_DEDUP_BACKEND: jdbc
+      FEISHU_RUNTIME_ROUTING_BACKEND: jdbc
+      FEISHU_SESSION_REDIS_ENABLED: "true"
+      FEISHU_SESSION_REDIS_URL: redis://redis:6379
+      FEISHU_RUNTIME_SKILL_REPO_DIR: ${FEISHU_RUNTIME_SKILL_REPO_DIR}
+      FEISHU_RUNTIME_SKILL_REPO_REFRESH_INTERVAL_MS: ${FEISHU_RUNTIME_SKILL_REPO_REFRESH_INTERVAL_MS}
+      FEISHU_WEBSOCKET_ENABLED: "true"
+      FEISHU_WEBSOCKET_APP_ID: ${FEISHU_WEBSOCKET_APP_ID}
+      FEISHU_WEBSOCKET_APP_SECRET: ${FEISHU_WEBSOCKET_APP_SECRET}
+
+      FEISHU_AUTH_APP_BASE_URL: ${FEISHU_AUTH_APP_BASE_URL}
+      FEISHU_AUTH_TOKEN_BACKEND: ${FEISHU_AUTH_TOKEN_BACKEND}
+
+      AI_ROUTER_BASE_URL: ${AI_ROUTER_BASE_URL}
+      AI_ROUTER_API_KEY: ${AI_ROUTER_API_KEY}
+      AI_ROUTER_PROVIDER: ${AI_ROUTER_PROVIDER}
+      AI_ROUTER_MODEL: ${AI_ROUTER_MODEL}
+      AI_ROUTER_TIMEOUT_SECONDS: ${AI_ROUTER_TIMEOUT_SECONDS}
+      AI_ROUTER_MAX_TOKENS: ${AI_ROUTER_MAX_TOKENS}
+      AI_ROUTER_TEMPERATURE: ${AI_ROUTER_TEMPERATURE}
+    volumes:
+      - ./skills-source:${FEISHU_RUNTIME_SKILL_REPO_DIR}:ro
+    ports:
+      - "8080:8080"
+
+volumes:
+  pg_data:
+  redis_data:
