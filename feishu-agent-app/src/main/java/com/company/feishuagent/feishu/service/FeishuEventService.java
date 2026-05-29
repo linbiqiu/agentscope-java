@@ -155,7 +155,8 @@ public class FeishuEventService {
                 request.event().chatId(),
                 request.event().chatType(),
                 request.event().identityContextJson(),
-                enterpriseIdentity);
+                enterpriseIdentity,
+                messageContext != null ? messageContext.messageId() : null);
 
         return new FeishuEventResponse(response.success(), null, response.traceId(), response.reply());
     }
@@ -205,14 +206,15 @@ public class FeishuEventService {
     }
 
     private void savePendingRequestIfOAuthRequired(String openId, String message, String chatId, String chatType,
-                                                     String identityContextJson, EnterpriseIdentity enterpriseIdentity) {
+                                                     String identityContextJson, EnterpriseIdentity enterpriseIdentity,
+                                                     String messageId) {
         if (feishuApiClient == null || openId == null || message == null) {
             return;
         }
         if (feishuApiClient.isOAuthRequired(openId)) {
             feishuApiClient.clearOAuthRequired(openId);
             String identityJson = serializeIdentity(enterpriseIdentity);
-            feishuApiClient.saveOAuthPendingRequest(openId, message, chatId, chatType, identityJson, identityContextJson);
+            feishuApiClient.saveOAuthPendingRequest(openId, message, chatId, chatType, identityJson, identityContextJson, messageId);
             logger.info("OAuth pending request saved for openId={} message={}", openId, message);
         }
     }

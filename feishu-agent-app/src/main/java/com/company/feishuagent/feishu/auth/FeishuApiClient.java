@@ -98,13 +98,16 @@ public class FeishuApiClient {
     }
 
     public void saveOAuthPendingRequest(String openId, String message, String chatId, String chatType,
-                                          String identityJson, String identityContextJson) {
+                                          String identityJson, String identityContextJson, String messageId) {
         try {
             Map<String, String> data = new LinkedHashMap<>();
             data.put("openId", openId);
             data.put("message", message);
             data.put("chatId", chatId);
             data.put("chatType", chatType);
+            if (messageId != null && !messageId.isBlank()) {
+                data.put("messageId", messageId);
+            }
             if (identityJson != null && !identityJson.isBlank()) {
                 data.put("identityJson", identityJson);
             }

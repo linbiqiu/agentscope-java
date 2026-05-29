@@ -4,6 +4,7 @@ import com.company.feishuagent.feishu.auth.FeishuApiClient;
 import com.company.feishuagent.feishu.auth.FeishuUserToken;
 import com.company.feishuagent.feishu.auth.FeishuUserTokenService;
 import com.company.feishuagent.feishu.model.EnterpriseIdentity;
+import com.company.feishuagent.feishu.service.FeishuReplyService;
 import com.company.feishuagent.runtime.api.SendMessageRequest;
 import com.company.feishuagent.runtime.api.SendMessageResponse;
 import com.company.feishuagent.runtime.service.RuntimeOrchestratorService;
@@ -32,17 +33,20 @@ public class FeishuOAuthController {
     private final FeishuUserTokenService tokenService;
     private final FeishuApiClient feishuApiClient;
     private final RuntimeOrchestratorService runtimeOrchestratorService;
+    private final FeishuReplyService feishuReplyService;
     private final Client openApiClient;
 
     public FeishuOAuthController(
             FeishuUserTokenService tokenService,
             FeishuApiClient feishuApiClient,
             RuntimeOrchestratorService runtimeOrchestratorService,
+            FeishuReplyService feishuReplyService,
             @Value("${feishu.websocket.app-id:}") String appId,
             @Value("${feishu.websocket.app-secret:}") String appSecret) {
         this.tokenService = tokenService;
         this.feishuApiClient = feishuApiClient;
         this.runtimeOrchestratorService = runtimeOrchestratorService;
+        this.feishuReplyService = feishuReplyService;
         this.openApiClient = Client.newBuilder(appId, appSecret).build();
     }
 
@@ -74,7 +78,7 @@ public class FeishuOAuthController {
                     try {
                         Thread.sleep(500);
                     } catch (InterruptedException ignored) {}
-                    notifyUser(openId, "授权成功！正在为您执行之前的请求...");
+                    replyToOrigin(pendingCopy, "授权成功！正在为您执行之前的请求...");
                     executePendingRequest(pendingCopy);
                 }).start();
             } else {
@@ -114,12 +118,25 @@ public class FeishuOAuthController {
             SendMessageResponse response = runtimeOrchestratorService.handleMessage(1L, request);
 
             if (response.reply() != null && !response.reply().isBlank()) {
-                notifyUser(openId, response.reply());
+                replyToOrigin(pending, response.reply());
             }
             logger.info("OAuth auto-execution completed for openId={} success={}", openId, response.success());
         } catch (Exception e) {
             logger.error("OAuth auto-execution failed for openId={}: {}", pending.get("openId"), e.getMessage());
-            notifyUser(pending.get("openId"), "授权成功但自动执行失败，请重新发送您的请求。");
+            replyToOrigin(pending, "授权成功但自动执行失败，请重新发送您的请求。");
+        }
+    }
+
+    private void replyToOrigin(Map<String, String> pending, String text) {
+        String messageId = pending != null ? pending.get("messageId") : null;
+        String chatType = pending != null ? pending.get("chatType") : null;
+        if (messageId != null && !messageId.isBlank()) {
+            feishuReplyService.replyText(messageId, text, chatType);
+        } else {
+            String openId = pending != null ? pending.get("openId") : null;
+            if (openId != null) {
+                notifyUser(openId, text);
+            }
         }
     }
 
